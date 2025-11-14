@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Glen — Personal Assistant Chatbot</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#7c3aed;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071029 0%, #07182a 70%);display:flex;align-items:center;justify-content:center;padding:28px;color:#e6eef8}
+    .container{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6);overflow:hidden;display:grid;grid-template-columns:360px 1fr}
+    .sidebar{padding:18px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border-right:1px solid rgba(255,255,255,0.03)}
+    .brand{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .avatar{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#ff7ab6);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:16px;margin:0}
+    .desc{font-size:13px;color:var(--muted);margin-top:6px}
+    .controls{margin-top:18px}
+    .preset{background:var(--glass);padding:8px;border-radius:8px;margin-bottom:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+    .preset:hover{transform:translateY(-2px)}
+    .modes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .mode{padding:6px 8px;border-radius:999px;border:1px solid rgba(255,255,255,0.03);font-size:13px;cursor:pointer}
+    .mode.active{background:linear-gradient(90deg,var(--accent),#ff7ab6);color:#081025;border:none}
+
+    .chat-area{display:flex;flex-direction:column;height:640px}
+    .messages{flex:1;padding:20px;overflow:auto;background:linear-gradient(180deg, rgba(255,255,255,0.005), transparent)}
+    .msg{max-width:78%;padding:12px;border-radius:10px;margin-bottom:12px;line-height:1.45}
+    .msg.user{margin-left:auto;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+    .msg.glen{background:linear-gradient(90deg, rgba(124,58,237,0.12), rgba(255,122,182,0.06));border:1px solid rgba(124,58,237,0.12)}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:8px}
+
+    .composer{padding:14px;border-top:1px solid rgba(255,255,255,0.02);display:flex;gap:8px;align-items:center}
+    .input{flex:1;background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px 12px;border-radius:10px;color:inherit;min-height:44px}
+    .btn{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#fff;cursor:pointer}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+
+    .footer-note{font-size:12px;color:var(--muted);text-align:center;margin-top:12px}
+
+    .small{font-size:13px}
+    @media (max-width:880px){.container{grid-template-columns:1fr}.sidebar{display:none}.chat-area{height:72vh}}
+  </style>
+</head>
+<body>
+  <div class="container" role="application">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="avatar">G</div>
+        <div>
+          <h1>Glen — Personal Assistant</h1>
+          <div class="desc">Funny • Smart • Romantic • Friendly • Professional</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="small">Quick prompts</div>
+        <div class="preset" data-prompt="Write a sweet good morning message for my partner.">Good morning message</div>
+        <div class="preset" data-prompt="Summarize this text: [paste text].">Summarize text</div>
+        <div class="preset" data-prompt="Plan a 30-minute study schedule for learning JavaScript.">Study plan</div>
+
+        <div style="margin-top:10px" class="small">Modes</div>
+        <div class="modes">
+          <div class="mode active" data-mode="balanced">Balanced</div>
+          <div class="mode" data-mode="funny">Funny</div>
+          <div class="mode" data-mode="romantic">Romantic</div>
+          <div class="mode" data-mode="professional">Professional</div>
+        </div>
+
+        <div style="margin-top:14px" class="small">Actions</div>
+        <button class="btn ghost" id="clearBtn">Clear chat</button>
+        <button class="btn ghost" id="downloadBtn">Download TXT</button>
+
+        <div class="footer-note">Tip: This frontend talks to a server that calls OpenAI. Add your API key on the server.</div>
+      </div>
+    </aside>
+
+    <main class="chat-area">
+      <div class="messages" id="messages" aria-live="polite"></div>
+
+      <div class="composer">
+        <textarea id="input" class="input" placeholder="Ask Glen anything..." rows="1"></textarea>
+        <button class="btn" id="sendBtn">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const systemMessageBase = `You are Glen — a conversational assistant who is funny, smart, romantic, friendly, and professional. Adapt tone to the user's mood. Use emojis sparingly. When user asks for romantic messages, be warm and respectful.`;
+
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let conversation = [];
+    let mode = 'balanced';
+
+    function appendMessage(role, text){
+      const wrap = document.createElement('div');
+      wrap.className = 'msg ' + (role === 'user' ? 'user' : 'glen');
+      const meta = document.createElement('div');meta.className='meta';meta.textContent = role === 'user' ? 'You' : 'Glen';
+      const body = document.createElement('div');body.innerHTML = text.replace(/\n/g,'<br>');
+      wrap.appendChild(meta);wrap.appendChild(body);messagesEl.appendChild(wrap);messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessageToServer(prompt){
+      appendMessage('user', escapeHtml(prompt));
+      conversation.push({role:'user',content:prompt});
+
+      const typing = document.createElement('div');typing.className='msg glen';typing.innerHTML='<div class="meta">Glen</div><div>Typing…</div>';
+      messagesEl.appendChild(typing);messagesEl.scrollTop = messagesEl.scrollHeight;
+
+      try{
+        const systemMessage = `${systemMessageBase} Mode: ${mode}.`;
+        const resp = await fetch('/api/chat',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({system:systemMessage, messages: conversation})
+        });
+        const data = await resp.json();
+        messagesEl.removeChild(typing);
+        if(!data || !data.reply){ appendMessage('glen', 'Sorry — no response from server.'); return; }
+        appendMessage('glen', data.reply);
+        conversation.push({role:'assistant',content:data.reply});
+      }catch(e){
+        messagesEl.removeChild(typing);
+        appendMessage('glen', 'Error: ' + (e.message||e));
+      }
+    }
+
+    sendBtn.addEventListener('click', () => {
+      const text = inputEl.value.trim(); if(!text) return; inputEl.value=''; sendMessageToServer(text);
+    });
+    inputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendBtn.click(); } });
+
+    document.querySelectorAll('.preset').forEach(p=>p.addEventListener('click', ()=>{ inputEl.value = p.dataset.prompt; inputEl.focus(); }));
+    document.querySelectorAll('.mode').forEach(m=>m.addEventListener('click', (ev)=>{
+      document.querySelectorAll('.mode').forEach(x=>x.classList.remove('active')); ev.currentTarget.classList.add('active'); mode = ev.currentTarget.dataset.mode;
+    }));
+
+    clearBtn.addEventListener('click', ()=>{ messagesEl.innerHTML=''; conversation = []; });
+    downloadBtn.addEventListener('click', ()=>{
+      const text = conversation.map(m=>`${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+      const blob = new Blob([text], {type:'text/plain'}); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'glen-conversation.txt'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    function escapeHtml(unsafe) {
+      return unsafe.replace(/[&<>"']/g, function(m){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m];
+      });
+    }
+
+    appendMessage('glen', 'Hey there 👋 I\'m Glen — your funny, smart, and slightly romantic assistant. How can I help you today?');
+  </script>
+</body>
+</html>
