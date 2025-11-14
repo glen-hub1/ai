@@ -1,0 +1,16 @@
+{
+  "name": "glen-ai-chatbot",
+  "version": "1.0.0",
+  "description": "Glen — Funny, Smart, Romantic, Friendly, Professional Personal Assistant AI Chatbot",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "openai": "^4.52.0"
+  }
+}
