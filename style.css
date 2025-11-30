@@ -1,62 +1,103 @@
+/* Make whole page responsive */
 body {
   background: #f5f6fa;
   font-family: Arial, sans-serif;
   display: flex;
   justify-content: center;
-  padding: 30px;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 15px; /* smaller padding for phones */
 }
 
+/* Main container */
 .chat-container {
-  width: 400px;
+  width: 100%;
+  max-width: 500px;       /* limits size on laptop but full on phone */
   background: white;
   padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 0 10px #ccc;
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-sizing: border-box; /* prevents overflow issues */
 }
 
+/* Title */
 h2 {
   text-align: center;
   margin-bottom: 20px;
+  font-size: 1.5rem;
 }
 
+/* Chat messages area */
 .chat-box {
-  height: 400px;
+  height: 60vh;           /* responsive height */
+  max-height: 500px;
   overflow-y: auto;
   border: 1px solid #ddd;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 15px;
   background: #fafafa;
+  box-sizing: border-box;
 }
 
+/* Messages UI */
 .message {
   margin-bottom: 10px;
-  padding: 5px 8px;
-  background: #e8e8ff;
-  border-radius: 8px;
+  padding: 8px 12px;
+  background: #e7e9ff;
+  border-radius: 10px;
+  line-height: 1.4;
+  font-size: 0.95rem;
 }
 
+/* Typing input area */
 .input-area {
   display: flex;
   gap: 10px;
 }
 
+/* Input styling */
 input {
   flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #bbb;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #aaa;
+  font-size: 1rem;
+  outline: none;
 }
 
+/* Button */
 button {
-  padding: 10px 15px;
-  background: #5b6eff;
+  padding: 12px 18px;
+  background: #5668ff;
   border: none;
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
 }
 
 button:hover {
-  background: #4252ff;
+  background: #4352ff;
+}
+
+/* Extra Mobile Tweaks */
+@media (max-width: 480px) {
+  .chat-container {
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  .message {
+    font-size: 0.9rem;
+  }
+
+  button {
+    padding: 12px;
+  }
 }
