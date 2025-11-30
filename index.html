@@ -24,8 +24,13 @@
       Glen is typing<span class="dots">...</span>
     </div>
 
+    <!-- Input area -->
     <div class="input-area">
       <input id="user-input" type="text" placeholder="Type a message..." />
+
+      <!-- Voice Input Button -->
+      <button id="voice-btn" class="voice-btn">🎤</button>
+
       <button onclick="sendMessage()">Send</button>
     </div>
   </div>
@@ -35,7 +40,7 @@
 /* -------------------------------
    AUTO-TYPING HEADER
 ----------------------------------*/
-const titleText = "Chat with Glen AI";
+const titleText = "Chat with Glen AI 🤖";
 let index = 0;
 function typeTitle() {
   const el = document.getElementById("auto-title");
@@ -54,7 +59,6 @@ const themeBtn = document.getElementById("theme-toggle");
 themeBtn.onclick = () => {
   document.body.classList.toggle("dark");
   document.body.classList.toggle("light");
-
   themeBtn.innerHTML =
     document.body.classList.contains("dark") ? "🌙" : "☀️";
 };
@@ -111,6 +115,44 @@ function showTyping(state) {
   const typingEl = document.getElementById("typing-indicator");
   state ? typingEl.classList.remove("hidden") : typingEl.classList.add("hidden");
 }
+
+/* -------------------------------
+   VOICE INPUT (Speech-to-Text)
+----------------------------------*/
+
+const voiceBtn = document.getElementById("voice-btn");
+
+let recognition;
+if ("webkitSpeechRecognition" in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    voiceBtn.classList.add("recording");
+    voiceBtn.innerHTML = "🎙️";
+  };
+
+  recognition.onend = () => {
+    voiceBtn.classList.remove("recording");
+    voiceBtn.innerHTML = "🎤";
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById("user-input").value = text;
+    sendMessage();
+  };
+}
+
+voiceBtn.onclick = () => {
+  if (!recognition) {
+    alert("Your browser does not support voice input.");
+    return;
+  }
+  recognition.start();
+};
 </script>
 
 </body>
