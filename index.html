@@ -7,12 +7,22 @@
   <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body class="dark">
+
+  <!-- THEME SWITCH -->
+  <button id="theme-toggle" class="theme-toggle">🌙</button>
 
   <div class="chat-container">
-    <h2>Chat with Glen AI</h2>
+
+    <!-- Auto-typing glowing header -->
+    <h2 id="auto-title" class="glow-title"></h2>
 
     <div id="chat-box" class="chat-box"></div>
+
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="typing hidden">
+      Glen is typing<span class="dots">...</span>
+    </div>
 
     <div class="input-area">
       <input id="user-input" type="text" placeholder="Type a message..." />
@@ -21,41 +31,87 @@
   </div>
 
 
-  <script>
-    async function sendMessage() {
-      const input = document.getElementById("user-input");
-      const message = input.value.trim();
-      if (!message) return;
+<script>
+/* -------------------------------
+   AUTO-TYPING HEADER
+----------------------------------*/
+const titleText = "Chat with Glen AI 🤖";
+let index = 0;
+function typeTitle() {
+  const el = document.getElementById("auto-title");
+  if (index <= titleText.length) {
+    el.innerHTML = titleText.slice(0, index);
+    index++;
+    setTimeout(typeTitle, 100);
+  }
+}
+typeTitle();
 
-      addMessage("You", message);
-      input.value = "";
+/* -------------------------------
+   THEME SWITCH
+----------------------------------*/
+const themeBtn = document.getElementById("theme-toggle");
+themeBtn.onclick = () => {
+  document.body.classList.toggle("dark");
+  document.body.classList.toggle("light");
 
-      try {
-        const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message })
-        });
+  themeBtn.innerHTML =
+    document.body.classList.contains("dark") ? "🌙" : "☀️";
+};
 
-        const data = await response.json();
-        addMessage("Glen", data.reply);
+/* -------------------------------
+   CHAT FUNCTION
+----------------------------------*/
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const message = input.value.trim();
+  if (!message) return;
 
-      } catch (error) {
-        addMessage("Glen", "⚠️ Network error. Try again.");
-      }
-    }
+  addMessage("You", message);
+  input.value = "";
 
-    function addMessage(sender, text) {
-      const chatBox = document.getElementById("chat-box");
+  showTyping(true);
 
-      const msg = document.createElement("div");
-      msg.className = sender === "You" ? "message user" : "message ai";
-      msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
 
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-  </script>
+    const data = await response.json();
+
+    showTyping(false);
+    addMessage("Glen", data.reply);
+
+  } catch {
+    showTyping(false);
+    addMessage("Glen", "⚠️ Network error. Try again.");
+  }
+}
+
+/* -------------------------------
+   ADD MESSAGE
+----------------------------------*/
+function addMessage(sender, text) {
+  const chatBox = document.getElementById("chat-box");
+
+  const msg = document.createElement("div");
+  msg.className = sender === "You" ? "message user" : "message ai";
+  msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+/* -------------------------------
+   TYPING INDICATOR
+----------------------------------*/
+function showTyping(state) {
+  const typingEl = document.getElementById("typing-indicator");
+  state ? typingEl.classList.remove("hidden") : typingEl.classList.add("hidden");
+}
+</script>
 
 </body>
 </html>
