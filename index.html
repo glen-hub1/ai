@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glen AI Chatbot</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dark">
+
+  <!-- THEME SWITCH -->
+  <button id="theme-toggle" class="theme-toggle">🌙</button>
+
+  <div class="chat-container">
+
+    <!-- Auto-typing glowing header -->
+    <h2 id="auto-title" class="glow-title"></h2>
+
+    <!-- Chat messages -->
+    <div id="chat-box" class="chat-box"></div>
+
+    <!-- Typing indicator -->
+    <div id="typing-indicator" class="typing hidden">
+      Glen is typing<span class="dots">...</span>
+    </div>
+
+  </div>
+
+  <!-- FIXED INPUT AREA (WhatsApp style) -->
+  <div class="input-area">
+    <input id="user-input" type="text" placeholder="Type a message..." />
+
+    <!-- Voice Input Button -->
+    <button id="voice-btn" class="voice-btn">🎤</button>
+
+    <!-- Rounded Send Button -->
+    <button class="send-btn" onclick="sendMessage()">➤</button>
+  </div>
+
+
+<script>
+/* -------------------------------
+   AUTO-TYPING HEADER
+----------------------------------*/
+const titleText = "Chat with Glen AI 🤖";
+let index = 0;
+function typeTitle() {
+  const el = document.getElementById("auto-title");
+  if (index <= titleText.length) {
+    el.innerHTML = titleText.slice(0, index);
+    index++;
+    setTimeout(typeTitle, 100);
+  }
+}
+typeTitle();
+
+/* -------------------------------
+   THEME SWITCH
+----------------------------------*/
+const themeBtn = document.getElementById("theme-toggle");
+themeBtn.onclick = () => {
+  document.body.classList.toggle("dark");
+  document.body.classList.toggle("light");
+  themeBtn.innerHTML =
+    document.body.classList.contains("dark") ? "🌙" : "☀️";
+};
+
+/* -------------------------------
+   CHAT FUNCTION
+----------------------------------*/
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const message = input.value.trim();
+  if (!message) return;
+
+  addMessage("You", message);
+  input.value = "";
+
+  showTyping(true);
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+
+    const data = await response.json();
+
+    showTyping(false);
+    addMessage("Glen", data.reply);
+
+  } catch {
+    showTyping(false);
+    addMessage("Glen", "⚠️ Network error. Try again.");
+  }
+}
+
+/* -------------------------------
+   ADD MESSAGE
+----------------------------------*/
+function addMessage(sender, text) {
+  const chatBox = document.getElementById("chat-box");
+
+  const msg = document.createElement("div");
+  msg.className = sender === "You" ? "message user" : "message ai";
+  msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+/* -------------------------------
+   TYPING INDICATOR
+----------------------------------*/
+function showTyping(state) {
+  const typingEl = document.getElementById("typing-indicator");
+  state ? typingEl.classList.remove("hidden") : typingEl.classList.add("hidden");
+}
+
+/* -------------------------------
+   VOICE INPUT (Speech-to-Text)
+----------------------------------*/
+const voiceBtn = document.getElementById("voice-btn");
+
+let recognition;
+if ("webkitSpeechRecognition" in window) {
+  recognition = new webkitSpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    voiceBtn.classList.add("recording");
+    voiceBtn.innerHTML = "🎙️";
+  };
+
+  recognition.onend = () => {
+    voiceBtn.classList.remove("recording");
+    voiceBtn.innerHTML = "🎤";
+  };
+
+  recognition.onresult = (event) => {
+    const text = event.results[0][0].transcript;
+    document.getElementById("user-input").value = text;
+    sendMessage();
+  };
+}
+
+voiceBtn.onclick = () => {
+  if (!recognition) {
+    alert("Your browser does not support voice input.");
+    return;
+  }
+  recognition.start();
+};
+</script>
+
+</body>
+</html>
